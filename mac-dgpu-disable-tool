@@ -1,0 +1,50 @@
+#!/bin/bash
+#
+
+SOURCE=/root/gpu-power-prefs-fa4ce28d-b62f-4c99-9cc3-6815686e30f9
+DEST=/sys/firmware/efi/efivars/gpu-power-prefs-fa4ce28d-b62f-4c99-9cc3-6815686e30f9
+needs_nvram_reset="no"
+
+# Colors
+CLEAR='\033[0m'
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+ORANGE='\033[31;1m'
+BLUE='\033[34m'
+
+echo '## Mac dGPU Disable Tool ##'
+echo ''
+
+for f in /sys/firmware/efi/efivars/gfx*; do
+    if [[ -e "$f" ]]; then
+        echo -e "${YELLOE}Detected:${CLEAR} $f"
+        needs_nvram_reset="yes"
+    fi
+done
+
+for f in /sys/firmware/efi/efivars/gpu*; do
+    if [[ -e "$f" ]]; then
+        echo -e "${YELLOE}Detected:${CLEAR} $f"
+	needs_nvram_reset="yes"
+    fi
+done
+
+echo ""
+if [[ ! -e "/sys/firmware/efi/efivars" ]]; then
+    echo -e "${RED}ERROR:${CLEAR} EFIVARS not found"
+elif cmp "$SOURCE" "$DEST" >/dev/null 2>&1; then
+    echo -e "${YELLOW}Discrete GPU already disabled${CLEAR}"
+elif [[ "$needs_nvram_reset" == "yes" ]]; then
+    echo -e "${RED}ERROR:${CLEAR} Detected the above EFIVARS"
+    echo -e "Please reboot and reset the NVRAM"
+else
+    cp "$SOURCE" "$DEST"
+    chattr -i "$DEST"
+    umount /sys/firmware/efi/efivars
+    sync
+    echo -e "${GREEN}Discrete GPU successfully disabled${CLEAR}"
+fi
+echo ""
+read -p "Press Enter to poweroff the system... " -r unusedvar
+poweroff
