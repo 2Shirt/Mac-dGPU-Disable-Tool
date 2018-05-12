@@ -16,34 +16,36 @@ BLUE='\033[34m'
 echo '## Mac dGPU Disable Tool ##'
 echo ''
 
-for f in /sys/firmware/efi/efivars/gfx*; do
-    if [[ -e "$f" ]]; then
-        echo -e "${YELLOE}Detected:${CLEAR} $f"
-        needs_nvram_reset="yes"
-    fi
-done
-
-for f in /sys/firmware/efi/efivars/gpu*; do
-    if [[ -e "$f" ]]; then
-        echo -e "${YELLOE}Detected:${CLEAR} $f"
-	needs_nvram_reset="yes"
-    fi
+# Check for current variables
+for prefix in gfx gpu; do
+    for var in /sys/firmware/efi/efivars/${prefix}*; do
+        # The test below is to avoid empty or nonexistent paths
+        if [[ -e "${var}" ]]; then
+            echo -e "${YELLOW}Detected:${CLEAR} $f"
+            needs_nvram_reset="yes"
+        fi
+    done
 done
 
 echo ""
 if [[ ! -e "/sys/firmware/efi/efivars" ]]; then
+    # Probably booted legacy
     echo -e "${RED}ERROR:${CLEAR} EFIVARS not found"
 elif cmp "$SOURCE" "$DEST" >/dev/null 2>&1; then
-    echo -e "${YELLOW}Discrete GPU already disabled${CLEAR}"
+    # EFI var matches desired state
+    echo -e "${ORANGE}Discrete GPU already disabled${CLEAR}"
 elif [[ "$needs_nvram_reset" == "yes" ]]; then
+    # One or more gfx/gpu EFI vars detected
     echo -e "${RED}ERROR:${CLEAR} Detected the above EFIVARS"
     echo -e "Please reboot and reset the NVRAM"
 else
+    # No gfx/gpu EFI vars detected so we can apply the fix
     cp "$SOURCE" "$DEST"
-    chattr -i "$DEST"
+    chattr +i "$DEST"
     umount /sys/firmware/efi/efivars
     sync
     echo -e "${GREEN}Discrete GPU successfully disabled${CLEAR}"
+    mount -t efivarfs efivarfs /sys/firmware/efi/efivars
 fi
 echo ""
 read -p "Press Enter to poweroff the system... " -r unusedvar
