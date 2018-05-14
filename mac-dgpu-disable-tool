@@ -21,7 +21,7 @@ for prefix in gfx gpu; do
     for var in /sys/firmware/efi/efivars/${prefix}*; do
         # The test below is to avoid empty or nonexistent paths
         if [[ -e "${var}" ]]; then
-            echo -e "${YELLOW}Detected:${CLEAR} $f"
+            echo -e "${YELLOW}Detected:${CLEAR} $var"
             needs_nvram_reset="yes"
         fi
     done
@@ -33,7 +33,7 @@ if [[ ! -e "/sys/firmware/efi/efivars" ]]; then
     echo -e "${RED}ERROR:${CLEAR} EFIVARS not found"
 elif cmp "$SOURCE" "$DEST" >/dev/null 2>&1; then
     # EFI var matches desired state
-    echo -e "${ORANGE}Discrete GPU already disabled${CLEAR}"
+    echo -e "${GREEN}Discrete GPU already disabled${CLEAR}"
 elif [[ "$needs_nvram_reset" == "yes" ]]; then
     # One or more gfx/gpu EFI vars detected
     echo -e "${RED}ERROR:${CLEAR} Detected the above EFIVARS"
