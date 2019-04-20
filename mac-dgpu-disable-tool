@@ -13,6 +13,39 @@ YELLOW='\033[33m'
 ORANGE='\033[31;1m'
 BLUE='\033[34m'
 
+# Functions
+function beep () {
+  echo -ne '\007'
+}
+function beeps_bad () {
+  # SOS-like?
+  beep
+  sleep 0.25s
+  beep
+  sleep 0.25s
+  beep
+
+  sleep 0.5s
+  beep
+  sleep 0.5s
+  beep
+  sleep 0.5s
+  beep
+  sleep 0.5s
+
+  beep
+  sleep 0.25s
+  beep
+  sleep 0.25s
+  beep
+}
+function beeps_good () {
+  # Two quick beeps
+  beep
+  sleep 0.25s
+  beep
+}
+
 echo '## Mac dGPU Disable Tool ##'
 echo ''
 
@@ -31,13 +64,16 @@ echo ""
 if [[ ! -e "/sys/firmware/efi/efivars" ]]; then
     # Probably booted legacy
     echo -e "${RED}ERROR:${CLEAR} EFIVARS not found"
+    beeps_bad
 elif cmp "$SOURCE" "$DEST" >/dev/null 2>&1; then
     # EFI var matches desired state
     echo -e "${GREEN}Discrete GPU already disabled${CLEAR}"
+    beeps_good
 elif [[ "$needs_nvram_reset" == "yes" ]]; then
     # One or more gfx/gpu EFI vars detected
     echo -e "${RED}ERROR:${CLEAR} Detected the above EFIVARS"
     echo -e "Please reboot and reset the NVRAM"
+    beeps_bad
 else
     # No gfx/gpu EFI vars detected so we can apply the fix
     cp "$SOURCE" "$DEST"
@@ -46,6 +82,7 @@ else
     sync
     echo -e "${GREEN}Discrete GPU successfully disabled${CLEAR}"
     mount -t efivarfs efivarfs /sys/firmware/efi/efivars
+    beeps_good
 fi
 echo ""
 read -p "Press Enter to poweroff the system... " -r unusedvar
