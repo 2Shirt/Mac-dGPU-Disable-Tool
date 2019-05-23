@@ -26,11 +26,13 @@ function beeps_bad () {
   beep
 
   sleep 0.5s
+
   beep
   sleep 0.5s
   beep
   sleep 0.5s
   beep
+
   sleep 0.5s
 
   beep
