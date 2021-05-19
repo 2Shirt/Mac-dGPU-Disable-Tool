@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+
+SOURCE=/root/gpu-power-prefs-fa4ce28d-b62f-4c99-9cc3-6815686e30f9
+DEST=/sys/firmware/efi/efivars/gpu-power-prefs-fa4ce28d-b62f-4c99-9cc3-6815686e30f9
+needs_nvram_reset="no"
+
+# Colors
+CLEAR='\033[0m'
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+ORANGE='\033[31;1m'
+BLUE='\033[34m'
+
+# Check for current variables
+for prefix in gfx gpu; do
+  for var in /sys/firmware/efi/efivars/${prefix}*; do
+    # The test below is to avoid empty or nonexistent paths
+    if [[ -e "${var}" ]]; then
+      echo -e "${YELLOW}Detected:${CLEAR} $var"
+      needs_nvram_reset="yes"
+    fi
+  done
+done
+
+echo ""
+if [[ ! -e "/sys/firmware/efi/efivars" ]]; then
+  # Probably booted legacy
+  echo -e "${RED}ERROR:${CLEAR} EFIVARS not found"
+elif cmp "$SOURCE" "$DEST" >/dev/null 2>&1; then
+  # EFI var matches desired state
+  echo -e "${GREEN}Discrete GPU already disabled${CLEAR}"
+elif [[ "$needs_nvram_reset" == "yes" ]]; then
+  # One or more gfx/gpu EFI vars detected
+  echo -e "${RED}ERROR:${CLEAR} Detected the above EFIVARS"
+  echo -e "Please reboot and reset the NVRAM"
+else
+  # No gfx/gpu EFI vars detected so we can apply the fix
+  cp "$SOURCE" "$DEST"
+  chattr +i "$DEST"
+  sync
+  umount /sys/firmware/efi/efivars
+  echo -e "${GREEN}Discrete GPU successfully disabled${CLEAR}"
+  mount -t efivarfs efivarfs /sys/firmware/efi/efivars
+fi
+echo ""
+read -p "Press Enter to poweroff the system... " -r unusedvar
+poweroff

@@ -1,43 +1,13 @@
 #!/bin/bash
 #
 
-# Prep build env
-rsync -ahvPS /usr/share/archiso/configs/releng/ temp/
-echo 'bc' > temp/packages.both
-rm temp/airootfs/etc/systemd/scripts/choose-mirror
-rm temp/airootfs/etc/systemd/system/choose-mirror.service
-rm temp/airootfs/etc/systemd/system/etc-pacman.d-gnupg.mount
-rm temp/airootfs/etc/systemd/system/pacman-init.service
-rm temp/airootfs/etc/udev/rules.d/81-dhcpcd.rules
-rmdir --ignore-fail-on-non-empty temp/airootfs/etc/udev/rules.d
-rmdir --ignore-fail-on-non-empty temp/airootfs/etc/udev
-cp mac-dgpu-disable-tool temp/airootfs/root/
-printf "\x07\x00\x00\x00\x01\x00\x00\x00" \
-    > temp/airootfs/root/gpu-power-prefs-fa4ce28d-b62f-4c99-9cc3-6815686e30f9
-chown -R root:root temp
+# Check if running as root
+if [[ "$EUID" -ne 0 ]]; then
+  echo "This script should be run as root."
+  echo "Aborted"
+  exit 1
+fi
 
-# Adjust boot menus
-sed -i 's/timeout 3/timeout 1/' temp/efiboot/loader/loader.conf
-sed -i 's/Arch Linux archiso x86_64/Mac dGPU Disable Tool/' temp/efiboot/loader/entries/*
-
-sed -i '/BACKGROUND/d' temp/syslinux/*
-echo 'PROMPT 1' >> temp/syslinux/archiso_head.cfg
-echo 'TIMEOUT 1' >> temp/syslinux/archiso_head.cfg
-echo 'DEFAULT arch64' >> temp/syslinux/archiso_head.cfg
-sed -i -r 's/Arch Linux( \(x86_64\)|)( live medium|)/Mac dGPU Disable Tool/' temp/syslinux/*
-sed -i '/allows/d' temp/syslinux/*
-
-# Add nomodeset boot option
-sed -i -r 's/^(options.*)$/\1 nomodeset/' temp/efiboot/loader/entries/archiso*
-sed -i -r 's/^(APPEND arch.*)$/\1 nomodeset/' temp/syslinux/*cfg
-
-# Modify live env
-echo '' >> temp/airootfs/etc/motd
-sed -i '/mirror/d' temp/airootfs/root/customize_airootfs.sh
-sed -i '/usermod/d' temp/airootfs/root/customize_airootfs.sh
-sed -i '/ssh/d' temp/airootfs/root/customize_airootfs.sh
-echo 'echo "~/mac-dgpu-disable-tool" >> /root/.bashrc' \
-    >> temp/airootfs/root/customize_airootfs.sh
-
-temp/build.sh -N dgpu -L DGPU -v
+# Build ISO
+mkarchiso -w /tmp/archiso-tmp-dgpu -o . -v profile
 

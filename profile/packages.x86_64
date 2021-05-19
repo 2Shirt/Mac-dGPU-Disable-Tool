@@ -1,0 +1,11 @@
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+base
+#cloud-init
+linux
+mkinitcpio
+mkinitcpio-archiso
+#openssh
+#qemu-guest-agent
+syslinux
+#virtualbox-guest-utils-nox
