@@ -13,6 +13,15 @@ YELLOW='\033[33m'
 ORANGE='\033[31;1m'
 BLUE='\033[34m'
 
+# Play MP3
+function play_mp3() {
+  mpg123 "mp3/$1" >/dev/null 2>&1
+}
+
+# Set volume
+amixer -q set Master 80% unmute >/dev/null 2>&1
+amixer -q set PCM 80% unmute >/dev/null 2>&1
+
 # Check for current variables
 for prefix in gfx gpu; do
   for var in /sys/firmware/efi/efivars/${prefix}*; do
@@ -27,23 +36,28 @@ done
 echo ""
 if [[ ! -e "/sys/firmware/efi/efivars" ]]; then
   # Probably booted legacy
+  play_mp3 "EFIVARS not found.mp3"
   echo -e "${RED}ERROR:${CLEAR} EFIVARS not found"
 elif cmp "$SOURCE" "$DEST" >/dev/null 2>&1; then
   # EFI var matches desired state
+  play_mp3 "Discrete GPU already disabled.mp3"
   echo -e "${GREEN}Discrete GPU already disabled${CLEAR}"
 elif [[ "$needs_nvram_reset" == "yes" ]]; then
   # One or more gfx/gpu EFI vars detected
+  play_mp3 "Please reset the NVRAM.mp3"
   echo -e "${RED}ERROR:${CLEAR} Detected the above EFIVARS"
-  echo -e "Please reboot and reset the NVRAM"
+  echo -e "Please reset the NVRAM"
 else
   # No gfx/gpu EFI vars detected so we can apply the fix
   cp "$SOURCE" "$DEST"
   chattr +i "$DEST"
   sync
   umount /sys/firmware/efi/efivars
-  echo -e "${GREEN}Discrete GPU successfully disabled${CLEAR}"
   mount -t efivarfs efivarfs /sys/firmware/efi/efivars
+  play_mp3 "Discrete GPU successfully disabled.mp3"
+  echo -e "${GREEN}Discrete GPU successfully disabled${CLEAR}"
 fi
 echo ""
+play_mp3 "Press Enter to poweroff the system.mp3"
 read -p "Press Enter to poweroff the system... " -r unusedvar
 poweroff

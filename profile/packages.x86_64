@@ -1,4 +1,6 @@
+alsa-utils
 base
 linux
 mkinitcpio
 mkinitcpio-archiso
+mpg123
