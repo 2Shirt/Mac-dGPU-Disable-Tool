@@ -4,6 +4,7 @@
 SOURCE=/root/gpu-power-prefs-fa4ce28d-b62f-4c99-9cc3-6815686e30f9
 DEST=/sys/firmware/efi/efivars/gpu-power-prefs-fa4ce28d-b62f-4c99-9cc3-6815686e30f9
 needs_nvram_reset="no"
+result="Press Enter to poweroff the system"
 
 # Colors
 CLEAR='\033[0m'
@@ -36,15 +37,15 @@ done
 echo ""
 if [[ ! -e "/sys/firmware/efi/efivars" ]]; then
   # Probably booted legacy
-  play_mp3 "EFIVARS not found.mp3"
+  result="EFIVARS not found"
   echo -e "${RED}ERROR:${CLEAR} EFIVARS not found"
 elif cmp "$SOURCE" "$DEST" >/dev/null 2>&1; then
   # EFI var matches desired state
-  play_mp3 "Discrete GPU already disabled.mp3"
+  result="Discrete GPU already disabled"
   echo -e "${GREEN}Discrete GPU already disabled${CLEAR}"
 elif [[ "$needs_nvram_reset" == "yes" ]]; then
   # One or more gfx/gpu EFI vars detected
-  play_mp3 "Please reset the NVRAM.mp3"
+  result="Please reset the NVRAM"
   echo -e "${RED}ERROR:${CLEAR} Detected the above EFIVARS"
   echo -e "Please reset the NVRAM"
 else
@@ -54,10 +55,17 @@ else
   sync
   umount /sys/firmware/efi/efivars
   mount -t efivarfs efivarfs /sys/firmware/efi/efivars
-  play_mp3 "Discrete GPU successfully disabled.mp3"
+  result="Discrete GPU successfully disabled"
   echo -e "${GREEN}Discrete GPU successfully disabled${CLEAR}"
 fi
 echo ""
-play_mp3 "Press Enter to poweroff the system.mp3"
-read -p "Press Enter to poweroff the system... " -r unusedvar
+echo "Press Enter to poweroff the system..."
+play_mp3 "${result}.mp3"
+while :; do
+  if read -r -t 5 unusedvar; then
+    break
+  else
+    play_mp3 "${result}.mp3"
+  fi
+done
 poweroff
